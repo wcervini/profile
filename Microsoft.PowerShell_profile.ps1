@@ -1,5 +1,43 @@
 # === $PROFILE optimizado para Neovim + PowerShell 2025 ===
 
+$env:EDITOR = "nvim"
+$env:GIT_EDITOR = "nvim"
+write-Host "😏 Use el comando ayuda para mas info 💥" 
+# ========== INICIALIZACIÓN ==========
+function ayuda {
+    Write-Host "`n🚀 PowerShell + Neovim cargado" -ForegroundColor Green
+    Write-Host "📂 nvim:   $env:nvim_config" -ForegroundColor Cyan
+    Write-Host "💾 data:   $env:nvim_data"   -ForegroundColor Cyan
+    Write-Host "`nComandos disponibles:"       -ForegroundColor Yellow
+
+    $cmds = @(
+        "nvconfig   - Editar configuración Neovim",
+        "nvplugins  - Editar plugins",
+        "nvclean    - Limpiar plugins",
+        "cleannv    - Limpiar caché",
+        "nvsize     - Ver tamaño",
+        "nvlunar    - Set nvim app",
+        "nvlazy     - Set nvim app",
+        "nvchad     - Set nvim app",
+        "nvastro    - Set nvim app",
+        "nvkick     - Set nvim app",
+        "----------------------------------------",
+        " Otros comandos útiles:",
+        "----------------------------------------",
+        "nvcd       - Cambia al directorio de nvim",
+        "nvprofile  - Cambia al directorio de perfil powershell",
+        "nvd        - Cambia al directorio de datos de nvim",
+        "cvenv      - Crea un entorno virtual en el proyecto actual",
+        "venvactivate - Activa el entorno virtual .venv"
+
+    )
+
+    $cmds | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+
+    Write-Host "`n"
+}
+
+
 # ========== ALIASES PRINCIPALES ==========
 # Alias global para que 'vi' siempre abra nvim (correcto así, sin -u)
 Set-Alias -Name nv -Value nvim -Option AllScope -Scope Global -Force
@@ -16,6 +54,15 @@ function nvcd {
     cd $env:nvim_config
 }
 
+function nvwez {
+    cd $env:wezterm_config_dir
+    nvim
+}
+
+function nvprofile {
+  Set-Location D:\documentos\powershell
+}
+
 function nvd {
     cd $env:nvim_data
 }
@@ -28,11 +75,11 @@ function venvactivate{
      .\.venv\Scripts\activate.ps1
 }
 
-function nvNormal { $env:NVIM_APPNAME = "" }
-function nvLunar { $env:NVIM_APPNAME = "nvim-lunar" }
-function nvChad { $env:NVIM_APPNAME = "nvim-chad" }
-function nvAstro { $env:NVIM_APPNAME = "nvim-lazy" }
-function nvKickstart { $env:NVIM_APPNAME = "nvim-kick" }
+function nvnormal { $env:NVIM_APPNAME = "" }
+function nvlunar { $env:NVIM_APPNAME = "nvim-lunar" }
+function nvchad { $env:NVIM_APPNAME = "nvim-chad" }
+function nvlazy { $env:NVIM_APPNAME = "nvim-lazy" }
+function nvkick { $env:NVIM_APPNAME = "nvim-kick" }
 
 # Neovim con FZF
 function nvf { nvim $(fzf) }
@@ -54,6 +101,63 @@ function nva {
         nvim -c "edit $file"
     }
 }
+
+function Init-PreCommitPython {
+    if (Test-Path .pre-commit-config.yaml) {
+        Write-Host ".pre-commit-config.yaml ya existe" -ForegroundColor Yellow
+        return
+    }
+
+    @'
+repos:
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.9.4
+  hooks:
+  - id: ruff
+    args: [--fix, --exit-non-zero-on-fix]
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+'@ | Out-File -FilePath .pre-commit-config.yaml -Encoding utf8
+
+    pre-commit install
+    Write-Host "pre-commit configurado para Python" -ForegroundColor Green
+}
+
+function Init-Commitlint {
+    param(
+        [switch]$Force
+    )
+
+    if ((Test-Path .git) -eq $false) {
+        Write-Host "No es un repo git" -ForegroundColor Red
+        return
+    }
+
+    $pm = if (Test-Path pnpm-lock.yaml) { "pnpm" }
+          elseif (Test-Path yarn.lock)  { "yarn" }
+          elseif (Test-Path package.json) { "npm" }
+          else { $null }
+
+    if ($pm) {
+        # Proyecto JS/TS/Node (Vue, Astro, etc)
+        & $pm add -D husky @commitlint/cli @commitlint/config-conventional
+        & npx husky init
+        '{ "extends": ["@commitlint/config-conventional"] }' | Out-File -FilePath .commitlintrc.json -Encoding utf8
+        'npx --no -- commitlint --edit %1' | Out-File -FilePath .husky\commit-msg -Encoding ascii
+        Write-Host "Commitlint + Husky configurado para JS ($pm)" -ForegroundColor Green
+    }
+    else {
+        Write-Host "Solo detecto commitlint para proyectos Node/JS por ahora" -ForegroundColor Yellow
+        Write-Host "Python/Go/Rust → usa git hooks manuales o pre-commit (multilenguaje)"
+    }
+
+    if ($Force) { git add .husky .commitlintrc.json; git commit -m "chore: add commitlint + husky" }
+}
+
 
 # Editar configuración de Neovim
 function nvconfig {
@@ -105,11 +209,12 @@ function proj {
     param([string]$name)
     
     $projects = @{
-        web     = "C:\Projects\Web"
-        python  = "C:\Projects\Python"
-        go      = "C:\Projects\Go"
-        rust    = "C:\Projects\Rust"
-        scripts = "C:\Projects\Scripts"
+        web     = "D:\Projects\Web"
+        python  = "D:\Projects\Python"
+        go      = "D:\Projects\Go"
+        rust    = "D:\Projects\Rust"
+        scripts = "D:\Projects\Scripts"
+        astro   = "C:\tutorial"
     }
     
     if ($projects.ContainsKey($name)) {
@@ -204,7 +309,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+r              -Function ReverseSearchHistory
 Set-PSReadLineKeyHandler -Key Ctrl+s              -Function ForwardSearchHistory
 
 # Smart completado para tus funciones
-Set-PSReadLineKeyHandler -Key Ctrl+@ -ScriptBlock {
+Set-PSReadLineKeyHandler -Key Ctrl+º -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::Insert('nv ')
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptSuggestion()
 }
@@ -259,22 +364,8 @@ function prompt {
     return "> "
 }
 
-# ========== INICIALIZACIÓN ==========
-Write-Host "`n🚀 PowerShell + Neovim cargado" -ForegroundColor Green
-Write-Host "📂 nvim: $env:nvim_config" -ForegroundColor Cyan
-Write-Host "💾 data: $env:nvim_data" -ForegroundColor Cyan
-Write-Host "`nComandos disponibles:" -ForegroundColor Yellow
-Write-Host "  nvconfig    - Editar configuración Neovim" -ForegroundColor Gray
-Write-Host "  nvplugins   - Editar plugins" -ForegroundColor Gray
-Write-Host "  nvclean     - Limpiar plugins" -ForegroundColor Gray
-Write-Host "  cleannv     - Limpiar caché" -ForegroundColor Gray
-Write-Host "  nvsize      - Ver tamaño" -ForegroundColor Gray
-Write-Host "`n"
-
 # Importacion de módulos
 Import-Module PSCompletions
-Import-Module git-completion
-Import-Module DockerMachineCompletion
 #Import-Module oh-my-posh
 #Import-Module posh-git
 
