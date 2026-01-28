@@ -2,6 +2,9 @@
 
 $env:EDITOR = "nvim"
 $env:GIT_EDITOR = "nvim"
+# Habilitar autocompletado de GitHub CLI
+Invoke-Expression -Command $(gh completion -s powershell | Out-String)
+
 write-Host "😏 Use el comando ayuda para mas info 💥" 
 # ========== INICIALIZACIÓN ==========
 function ayuda {
@@ -28,8 +31,9 @@ function ayuda {
         "nvprofile  - Cambia al directorio de perfil powershell",
         "nvd        - Cambia al directorio de datos de nvim",
         "cvenv      - Crea un entorno virtual en el proyecto actual",
-        "venvactivate - Activa el entorno virtual .venv"
-
+        "venvactivate - Activa el entorno virtual .venv",
+        "proyectos  - Cambia al directorio D:\\proyectos",
+        "nvwezterm  - Cambia al directorio D:\\proyectos si existe wezterm"
     )
 
     $cmds | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
@@ -49,6 +53,32 @@ Set-Alias -Name vi -Value nvim -Option AllScope -Scope Global -Force
 # Configuración principal
 $env:nvim_config = "$env:LOCALAPPDATA\nvim"
 $env:nvim_data = "$env:LOCALAPPDATA\nvim-data"
+
+function nvwezterm {
+    # Cambia el directorio raiz del usuario al disco D
+    Set-Location -Path "D:\"
+
+    # Asegúrate de que exista la carpeta "proyectos" dentro del directorio actual
+    if (Test-Path "$PWD\scoop\apps\wezterm\current") {
+        # Si existe, cambia el directorio a "proyectos"
+        Set-Location -Path "$PWD\scoop\apps\wezterm\current"
+    } else {
+        Write-Warning "La carpeta 'wezterm' no se encuentra en el directorio actual."
+    }
+}
+
+function proyectos {
+    # Cambia el directorio raiz del usuario al disco D
+    Set-Location -Path "D:\"
+
+    # Asegúrate de que exista la carpeta "proyectos" dentro del directorio actual
+    if (Test-Path "$PWD\proyectos") {
+        # Si existe, cambia el directorio a "proyectos"
+        Set-Location -Path "$PWD\proyectos"
+    } else {
+        Write-Warning "La carpeta 'proyectos' no se encuentra en el directorio actual."
+    }
+}
 
 function nvcd {
     cd $env:nvim_config
